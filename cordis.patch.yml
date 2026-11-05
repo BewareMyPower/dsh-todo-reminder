@@ -1,0 +1,3 @@
+- insert:
+    - id: todo-reminder
+      name: '@bewaremypower/dsh-todo-reminder'

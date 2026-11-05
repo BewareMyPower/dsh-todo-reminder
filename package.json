@@ -1,0 +1,28 @@
+{
+  "name": "@bewaremypower/dsh-todo-reminder",
+  "version": "0.1.0",
+  "description": "Advisory DSH plugin that nudges an agent to update a stale todo list mid-turn.",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "index.d.ts",
+    "cordis.patch.yml"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*"
+  },
+  "devDependencies": {
+    "@deepseek-ai/cordis": "^4.1.0"
+  },
+  "license": "MIT"
+}
