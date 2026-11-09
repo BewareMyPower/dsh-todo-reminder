@@ -58,13 +58,31 @@ test('todo_write restarts the counter and refreshes the unfinished count', async
   assert.equal(reminders.length, 0)
 })
 
-test('a user message clears tracked state', async () => {
+async function preStep(listeners, agent, { turn, user = false } = {}) {
+  const messages = user ? [{ source: { kind: 'user' } }] : []
+  for (const listener of listeners['agent/pre-step']) {
+    await listener({ agent, messages, turn }, () => Promise.resolve({ kind: 'enter' }))
+  }
+}
+
+test('a mid-turn user message keeps the open count and restarts the counter', async () => {
   const l = harness([2])
   const agent = {}
+  await preStep(l, agent, { turn: 1 })
   await runCalls(l, agent, [write(open(2)), call()])
-  for (const listener of l['agent/pre-step']) {
-    await listener({ agent, messages: [{ source: { kind: 'user' } }] }, () => Promise.resolve({ kind: 'enter' }))
-  }
+  await preStep(l, agent, { turn: 1, user: true })
+  // The interjection only delayed the reminder; the stale list keeps tracking.
+  const reminders = await runCalls(l, agent, [call(), call(), call()])
+  assert.equal(reminders.length, 1)
+  assert.match(reminders[0][0].content[0].text, /2 unfinished items.*2 tool calls/)
+})
+
+test('a new turn drops the previous list state', async () => {
+  const l = harness([1])
+  const agent = {}
+  await preStep(l, agent, { turn: 1 })
+  await runCalls(l, agent, [write(open(2)), call()])
+  await preStep(l, agent, { turn: 2, user: true })
   const reminders = await runCalls(l, agent, [call(), call(), call()])
   assert.equal(reminders.length, 0)
 })

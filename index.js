@@ -83,8 +83,23 @@ export function apply(ctx, config) {
     return { ...downstream, additionalContexts }
   })
 
-  ctx.on('agent/pre-step', ({ agent, messages }, next) => {
-    if (messages.some(message => message.source.kind === 'user')) states.delete(agent)
+  // Agent → last `turn` seen at pre-step; every step runs pre-step before its
+  // calls, so this is always the current turn when a todo_write lands.
+  const lastTurns = new WeakMap()
+
+  ctx.on('agent/pre-step', ({ agent, messages, turn }, next) => {
+    const previous = lastTurns.get(agent)
+    if (turn !== undefined) lastTurns.set(agent, turn)
+    const state = states.get(agent)
+    if (state === undefined) return next()
+    if (turn !== undefined && previous !== undefined && previous !== turn) {
+      // New turn: the previous list left the projection; drop its record.
+      states.delete(agent)
+    } else if (messages.some(message => message.source.kind === 'user')) {
+      // Mid-turn interjection: the list is still live and still stale, so keep
+      // `open`; restarting `calls` gives the model a grace period to absorb it.
+      state.calls = 0
+    }
     return next()
   })
 }
